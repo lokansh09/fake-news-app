@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fake News Detector</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      overflow-y: auto;
+    }
+
+    /* Darkened Background Image */
+    .bg-image {
+      background-image: url('https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&w=1920&q=80');
+      background-size: cover;
+      background-position: center;
+      filter: brightness(50%); /* Darkens the image */
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: 100%;
+      z-index: -1;
+    }
+
+    /* Dark Overlay for the background */
+    body::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.6); /* Moderate dark overlay */
+      z-index: -1;
+    }
+
+    .confidence-bar {
+      height: 12px;
+      background-color: rgba(255, 255, 255, 0.2);
+      border-radius: 9999px;
+      overflow: hidden;
+      margin-top: 1rem;
+    }
+
+    .confidence-fill {
+      height: 100%;
+      width: 0;
+      background-color: white;
+      border-radius: 9999px;
+      transition: width 1.5s ease;
+    }
+
+    .animate-pulse-emoji {
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.15); }
+      100% { transform: scale(1); }
+    }
+
+    /* Glow effect for result */
+    .glow-true {
+      background-color: rgba(46, 204, 113, 0.8); /* Darker green glow */
+      box-shadow: 0 0 25px #00ff88, 0 0 45px #00ff88;
+      border: 2px solid #00ff88;
+      color: #eafff4;
+    }
+
+    .glow-fake {
+      background-color: rgba(231, 76, 60, 0.8); /* Darker red glow */
+      box-shadow: 0 0 25px #ff3c3c, 0 0 45px #ff3c3c;
+      border: 2px solid #ff3c3c;
+      color: #ffecec;
+    }
+
+    /* Adding glow effect to the result section */
+    .result-text {
+      background-color: rgba(0, 0, 0, 0.7); /* Darker result text background */
+      border-radius: 10px;
+      padding: 10px;
+      font-size: 1.1rem;
+      box-shadow: 0 0 15px rgba(255, 255, 255, 0.6);
+    }
+
+    /* Button Styles */
+    .cool-button {
+      background: linear-gradient(135deg, #00d2ff, #3a47d5);
+      transition: all 0.3s ease;
+    }
+
+    .cool-button:hover {
+      transform: translateY(-3px) scale(1.03);
+      background: linear-gradient(135deg, #3a47d5, #00d2ff);
+      box-shadow: 0 0 15px rgba(58, 71, 213, 0.6);
+    }
+
+    /* Loading spinner */
+    .loading-spinner {
+      display: none;
+      border: 4px solid rgba(255, 255, 255, 0.3);
+      border-top: 4px solid white;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Textarea & Character count */
+    #charCount {
+      color: rgba(255, 255, 255, 0.9); /* Darker color for better contrast */
+    }
+
+    .emoji-animate {
+      font-size: 3rem;
+      animation: emojiAnimation 2s ease-in-out infinite;
+    }
+
+    @keyframes emojiAnimation {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.5); }
+    }
+    
+  </style>
+</head>
+<body>
+<h2 class="text-2xl font-bold text-white mb-4">Welcome, {{ username }}!</h2>
+  <!-- Background -->
+  <div class="bg-image"></div>
+
+  <!-- Main Content -->
+  <div class="flex items-center justify-center min-h-screen px-4">
+    <div class="bg-white/20 backdrop-blur-2xl rounded-3xl shadow-2xl p-8 max-w-2xl w-full text-center text-white space-y-6">
+      
+      <!-- Header -->
+      <div>
+        <!-- Updated the emoji to 🤖 or 🦸‍♂️ -->
+        <div class="text-6xl emoji">🕵️‍♀️</div>
+        <h1 class="text-4xl font-bold mt-2">Fake News Detector</h1>
+        <p class="text-white/80 text-sm mt-1">Built with AI | Instantly check authenticity</p>
+      </div>
+
+      <!-- Text Input -->
+      <textarea id="newsInput" rows="6" class="w-full rounded-xl p-4 text-gray-900 resize-none shadow-lg focus:outline-none focus:ring-2 focus:ring-cyan-400 placeholder:italic placeholder:text-gray-400" placeholder="Paste your news article or headline here..."></textarea>
+      <p id="charCount" class="text-sm font-bold mt-1" style="color: white;">0 / 1000 Characters</p>
+ <!-- Darkened the character count color -->
+
+      <!-- Analyze Button -->
+      <button onclick="checkNews()" class="cool-button mt-4 w-full text-white font-semibold py-3 rounded-xl">
+        🔍 Analyze
+      </button>
+
+      <!-- Loading Spinner -->
+      <div id="loading" class="loading-spinner mt-4 mx-auto"></div>
+
+      <!-- Result -->
+      <div id="result" class="hidden p-6 rounded-2xl font-semibold text-lg shadow-lg transition-all duration-500 text-center">
+        <div id="resultText" class="result-text"></div>
+        <div class="confidence-bar mt-4">
+          <div id="confidenceFill" class="confidence-fill"></div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <p class="text-white/50 text-sm mt-4">End-to-End AI Project | Made with ❤️</p>
+    </div>
+  </div>
+
+  <script>
+    const MAX_CHAR_COUNT = 1000;
+
+    // Function to handle checking the news
+    function checkNews() {
+  const input = document.getElementById("newsInput").value.trim();
+  const resultDiv = document.getElementById("result");
+  const resultText = document.getElementById("resultText");
+  const confidenceFill = document.getElementById("confidenceFill");
+  const loadingSpinner = document.getElementById("loading");
+
+  if (!input) {
+    alert("Please enter some text to analyze!");
+    return;
+  }
+
+  loadingSpinner.style.display = 'block'; // Show loading spinner
+
+  fetch('/predictN', {  // POST to the Flask backend
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ text: input }), // Send text as JSON
+  })
+  .then(response => response.json())
+  .then(data => {
+    loadingSpinner.style.display = 'none'; // Hide loading spinner
+    resultDiv.classList.remove('hidden', 'glow-true', 'glow-fake');
+
+    if (data.prediction === "REAL" || data.prediction === "Real") {
+      resultText.innerHTML = `😎 <strong>This news looks REAL!</strong><br>Truth Score: ${data.confidence}% ✅`;
+      resultDiv.classList.add('glow-true');
+    } else {
+      resultText.innerHTML = `😬 <strong>Fake News Detected!</strong><br>Truth Score: ${data.confidence}% ❌`;
+      resultDiv.classList.add('glow-fake');
+    }
+    confidenceFill.style.width = `${data.confidence}%`;
+  })
+  .catch(error => {
+    loadingSpinner.style.display = 'none';
+    console.error('Error:', error);
+    alert("Failed to analyze. Backend not running?");
+  });
+}
+
+    // Update character count
+    document.getElementById("newsInput").addEventListener('input', function() {
+      const charCount = this.value.length;
+      document.getElementById("charCount").textContent = `${charCount}/1000 Characters`;
+
+      if (charCount > MAX_CHAR_COUNT) {
+        this.value = this.value.substring(0, MAX_CHAR_COUNT);
+        document.getElementById("charCount").textContent = `1000/1000 Characters`;
+      }
+    });
+  </script>
+
+</body>
+</html>
