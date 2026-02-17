@@ -1,17 +1,21 @@
-# Use lightweight Python image
 FROM python:3.11-slim
 
-# Set working directory
+# Create a user
+RUN useradd -m -u 1000 user
+USER user
+ENV PATH="/home/user/.local/bin:$PATH"
+
 WORKDIR /app
 
-# Copy all files into container
-COPY . /app
+# Copy requirements and install
+COPY --chown=user requirements.txt requirements.txt
+RUN pip install --no-cache-dir --upgrade -r requirements.txt
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy all files
+COPY --chown=user . /app
 
-# Expose HF Spaces default port
+# Expose HF port
 EXPOSE 7860
 
-# Run Flask app with gunicorn
-CMD ["gunicorn", "--bind", "0.0.0.0:7860", "app:app"]
+# Start your Flask app with gunicorn
+CMD ["gunicorn", "-b", "0.0.0.0:7860", "app:app"]
