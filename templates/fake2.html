@@ -9,8 +9,11 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
   <style>
     html, body {
-      height: 100%;
+      min-height: 100vh;
       margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      overflow-x: hidden;
     }
 
     .transition-fade {
@@ -96,12 +99,13 @@
       font-weight: bold;
       color: white;
       z-index: 100;
+      max-width: 100%
     }
 
   </style>
 </head>
 
-<body class="min-h-screen bg-gradient-to-br from-purple-700 via-indigo-600 to-blue-600 text-white flex items-center justify-center px-4 py-8 font-[Poppins]">
+<body class="min-h-screen bg-gradient-to-br from-purple-700 via-indigo-600 to-blue-600 text-white flex items-center justify-center py-8 font-[Poppins] mx-auto overflow-hidden">
 
   <div class="logo">Fake News</div>
 
@@ -174,6 +178,10 @@
   const confirmWarning = document.getElementById('confirm-password-warning');
   const passwordRequirementsBox = document.getElementById('password-requirements');
   const loginPasswordWarning = document.getElementById('login-password-warning');
+  const loginButton = loginForm.querySelector('button[type="submit"]');
+  const spinner = document.createElement('div');
+  spinner.className = 'loading-spinner'; // reuse your CSS spinner
+  loginForm.appendChild(spinner);
 
   const showToast = (msg, duration = 3000) => {
     toast.textContent = msg;
@@ -247,16 +255,15 @@
     confirmWarning.classList.toggle('visible-fade', !isMatch);
   });
 
-  // Show toast on form submission
-  /*loginForm.onsubmit = (e) => {
-    e.preventDefault();
-    showToast('Login successful!', 2000);
-  };
+  loginForm.addEventListener('submit', (e) => {
+  e.preventDefault(); // stop immediate submit
+  loginButton.disabled = true;
+  spinner.style.display = 'block';
 
-  signupForm.onsubmit = (e) => {
-    e.preventDefault();
-    showToast('Signup successful!', 2000);
-  };*/
+  setTimeout(() => {
+    loginForm.submit(); // now submit after 2 seconds
+  }, 2000);
+});
 </script>
 </body>
 </html>

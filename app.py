@@ -60,9 +60,17 @@ def predict_news():
     input_text = data.get('text', '')
 
     if input_text:
-        prediction = model.predict([input_text])[0]
-        confidence = model.predict_proba([input_text]).max() * 100
-        return jsonify({'prediction': prediction, 'confidence': round(confidence, 2)})
+        vector_input = vectorizer.transform([input_text])
+
+        prediction = int(model.predict(vector_input)[0])
+        confidence = float(model.predict_proba(vector_input).max() * 100)
+
+        label = "REAL" if prediction == 0 else "FAKE"
+
+        return jsonify({
+            'prediction': label,
+            'confidence': round(confidence, 2)
+        })
     else:
         return jsonify({'error': 'No input text received'}), 400
 
